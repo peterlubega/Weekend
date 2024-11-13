@@ -1,0 +1,105 @@
+Sub GetFilePath()
+    Dim fd As FileDialog
+    Dim FilePath As String
+
+    ' First File Dialog for WIB File
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    MsgBox "Please Select WIB File"
+    
+    With fd
+        .Title = "Select WIB Excel File"
+        .InitialFileName = ""
+        .ButtonName = "Select"
+        .Filters.Clear
+        .Filters.Add "Excel Files", "*.csv; *.xls; *.xlsx; *.xlsm"
+        .FilterIndex = 1
+        
+        ' Show dialog and store selected file path in G2
+        If .Show = -1 Then
+            FilePath = .SelectedItems(1)
+            Range("G2").Value = FilePath
+            MsgBox "WIB file picked successfully"
+        Else
+            MsgBox "No WIB file selected"
+        End If
+    End With
+    
+    ' Reset the FileDialog filters for B2 File
+    MsgBox "Please Select B2 File"
+    fd.Filters.Clear
+    fd.Title = "Select B2 Text File"
+    fd.ButtonName = "Select"
+    fd.Filters.Add "Text Files", "*.txt"
+    
+    ' Show dialog and store selected file path in G3
+    If fd.Show = -1 Then
+        FilePath = fd.SelectedItems(1)
+        Range("G3").Value = FilePath
+        MsgBox "B2 file picked successfully, Click Ok To Import Data."
+    Else
+        MsgBox "No B2 file selected"
+    End If
+
+    Set fd = Nothing
+    Call Read_Txt_File.ReadTextFile
+End Sub
+
+
+
+==========================================================================================
+
+
+Sub ReadTextFile()
+    Dim FilePath As String
+    Dim FileContent As String
+    Dim FileNumber As Integer
+    Dim LineOfText As String
+    
+    FilePath = ThisWorkbook.Sheets(1).Cells(3, 7)
+    '"C:\Users\AB020L1\OneDrive - Absa\My Documents\DT\Projects\Recon\b2settlrpt.txt"
+    FileNumber = FreeFile
+
+    Open FilePath For Input As #FileNumber
+    Do While Not EOF(FileNumber)
+        Line Input #FileNumber, LineOfText
+        FileContent = FileContent & LineOfText & vbCrLf
+    Loop
+    Close #FileNumber
+    FindPatternWithRegEx (FileContent)
+End Sub
+
+Sub FindPatternWithRegEx(xxxx)
+    Dim regEx As Object
+    Dim matches As Object
+    Dim match As Object
+    Dim mainString As String
+    Dim pattern As String
+    
+    mainString = xxxx
+    pattern = "4\d\d\d\d\d[~*]"
+    
+    Set regEx = CreateObject("VBScript.RegExp")
+    regEx.Global = True
+    regEx.IgnoreCase = True
+    regEx.pattern = pattern
+    
+    Set matches = regEx.Execute(mainString)
+    
+    MyRow = 6
+    If matches.Count > 0 Then
+        For Each match In matches
+            'MsgBox "Pattern found at position: " & match.FirstIndex + 1
+             FinalString = Mid(mainString, match.FirstIndex + 1, 88) & "  " & Mid(mainString, match.FirstIndex + 1 + 103, 67)
+                Cells(MyRow, 13) = Mid(FinalString, 1, 16)
+                Cells(MyRow, 14) = Mid(FinalString, 17, 6)
+                Cells(MyRow, 15) = Mid(FinalString, 23, 20)
+                Cells(MyRow, 16) = Mid(FinalString, 43, 3)
+                Cells(MyRow, 17) = Mid(FinalString, 46, 13)
+                Cells(MyRow, 18) = Mid(FinalString, 59, 8)
+            MyRow = MyRow + 1
+        Next match
+        MsgBox "B2 Data Imported Successfully"
+    Else
+        MsgBox "Pattern not found!!"
+    End If
+End Sub
